@@ -1,0 +1,289 @@
+
+
+#include <mega16a.h>
+#include <delay.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <i2c.h>
+#include <ds1307.h>
+#include <alcd.h>
+
+#define b_set   PINB.0
+#define b_dec 	PINB.1
+#define b_inc 	PINB.2
+
+
+
+
+
+typedef unsigned char byte;
+                        
+
+flash byte char0[8]={4,10,0,21,31,0,0,0};	
+flash byte charl[8]={0,2,0,5,31,0,8,0}; 
+flash byte char2[8]={0,1,3,3,1,0,0,0}; 
+flash byte char0_j[8]={0,0,6,1,31,0,4,0}; 
+flash byte char1_j[8]={0,0,28,8,31,3,0,0}; 
+flash byte char2_j[8]={0,2,6,6,3,0,0,0};
+
+unsigned char hour=0,minute=0,second=0;
+unsigned char year=0,month=0,day=0,dow=0,set_k=0;
+
+
+void define_char(unsigned char flash *pc,byte char_code)
+{
+    byte i,a;
+    a=(char_code<<3)|0x40;     
+    for(i=0;i<8;i++) lcd_write_byte(a++ ,*pc++); 
+}
+
+
+void setting_key()
+{
+    set_k++;
+    if(set_k==7) 
+    {
+        set_k=0;
+        goto exit_set;
+    }
+    //_lcd_ready();
+    _lcd_write_data(0x0F); 
+    switch(set_k)
+    {   
+        case 1:
+            lcd_gotoxy(5,0);
+            lcd_putsf("-?");
+            lcd_gotoxy(6,0);
+            break;
+        
+        case 2 : 
+            lcd_gotoxy(8,0);
+            lcd_putsf("-?");
+            lcd_gotoxy(9,0);
+            break;
+            
+        case 3: 
+            lcd_gotoxy(2,1);
+            lcd_putsf("-?");
+            lcd_gotoxy(3,1);
+            break;
+            
+        case 4 : 
+            lcd_gotoxy(5,1);
+            lcd_putsf("-?");
+            lcd_gotoxy(6,1);
+            break;
+            
+        case 5 : 
+            lcd_gotoxy(8,1);
+            lcd_putsf("-?");
+            lcd_gotoxy(9,1);
+            break; 
+            
+         case 6 : 
+            lcd_gotoxy(13,1);
+            lcd_putsf("-?");
+            lcd_gotoxy(14,1);
+            break;   
+    }
+    delay_ms(500); 
+    //_lcd_ready();
+    _lcd_write_data( 0x0C );   
+    exit_set:
+}
+
+
+void down_dec()
+{
+    if(set_k==1)
+    {
+        if(hour!=0)
+        { 
+            hour--;   
+            rtc_set_time(hour,minute,second);    
+            delay_ms(10);
+        }
+    }
+    
+    if (set_k==2)
+    {
+        if (minute!=0)
+        {            
+            minute --;
+            rtc_set_time(hour,minute,second);	
+            delay_ms (10); 
+        }
+    }  
+    
+    if (set_k==3) 
+    {
+        rtc_get_date(&dow,&day,&month,&year);
+        if (year!=0)  year--;
+        rtc_set_date(dow,day,month,year);  
+    }
+    
+    if (set_k==4)
+    {
+        rtc_get_date( &dow ,&day ,&month, &year) ;
+        if	(month!=1)  month--;
+        rtc_set_date ( dow,day, month, year) ;
+    }
+    
+    if (set_k==5)
+    {
+        rtc_get_date (&dow, &day, &month, &year);
+        if(day!=1) day--;
+        rtc_set_date (dow,day, month, year);  
+    }  
+    
+    if (set_k==6)
+    {
+        rtc_get_date (&dow, &day, &month, &year);
+        if(dow!=0) dow--;
+        rtc_set_date (dow,day, month, year);  
+    }
+}
+
+void up_inc()
+{
+    if(set_k==1)
+    {    
+        hour++;
+        if(hour==24)  hour=0;
+        rtc_set_time (hour, minute, second) ;
+        delay_ms(10);
+    }  
+    
+    if(set_k==2)
+    {
+        minute++;
+        if (minute==60) minute=0;
+        rtc_set_time (hour, minute , second);
+        delay_ms(10);
+    }
+     
+    if(set_k==3)
+    {
+        rtc_get_date (&dow,&day, &month,&year);
+        year++;
+        if (year==100) year=0;
+        rtc_set_date (dow, day, month, year);
+    }  
+    
+    if (set_k==4) 
+    {
+        rtc_get_date(&dow, &day, &month, &year);
+        month++;
+        if(month==13) month=1;
+        rtc_set_date(dow, day, month, year);
+    }    
+    
+    if (set_k==5) 
+    {
+        rtc_get_date(&dow, &day, &month, &year); 
+        day++ ;
+        if 	(day==32) day=1; 
+        rtc_set_date(dow, day,month,year);
+    }
+    
+    if (set_k==6) 
+    {
+        rtc_get_date(&dow, &day, &month, &year); 
+        dow++ ;
+        if 	(dow==7) dow=0; 
+        rtc_set_date(dow,day,month,year);
+    }       
+
+}
+
+
+void shanbeh()
+{
+    define_char(char0,0);
+    define_char(charl,1);
+    define_char(char2,2);
+
+    lcd_gotoxy(11,1);
+    lcd_putchar(2); 
+    lcd_putchar(1);
+    lcd_putchar(0);  
+}
+
+
+void jomeh()
+{              
+    define_char(char0_j,0);
+    define_char(char1_j,1);
+    define_char(char2_j,2);
+
+    lcd_gotoxy(11,1);
+    lcd_putchar(2);   
+    lcd_putchar(1);
+    lcd_putchar(0);  
+}
+
+void day_week()
+{
+
+    shanbeh();  
+    lcd_gotoxy(14,1); 	
+    switch(dow)
+    {
+        case 0 	:lcd_putsf("1");break;
+        case 1 	:lcd_putsf("2");break; 
+        case 2 	:lcd_putsf("3");break;
+        case 3 	:lcd_putsf("4");break;
+        case 4 	:lcd_putsf("5");break; 	
+        case 5	:jomeh();lcd_putsf(" ");break;
+        case 6 	:lcd_putsf("  " ) ;break; 
+    }
+}
+
+
+void main(void)
+{
+char lcd_bufferl[16];
+char lcd_buffer2[16];
+
+DDRB=0x00;
+PORTB=0x00;
+DDRC=0x00;
+PORTC=0xFF;
+
+i2c_init();
+rtc_init(0,0,0);
+lcd_init(16);
+lcd_clear();
+lcd_putsf("Persian RTC");
+//lcd_gotoxy(0,1);
+delay_ms(2000);
+rtc_get_time(&hour,&minute,&second);
+if(second>59)
+{  
+    rtc_set_time (12, 34, 56) ;
+    rtc_set_date(dow,30,10,1398);
+}
+    
+
+while (1)
+      {
+        if(b_set==0) setting_key(); 
+        if(b_dec==0) down_dec();
+        if(b_inc==0) up_inc();
+        
+        rtc_get_time(&hour,&minute,&second);
+        rtc_get_date(&dow,&day,&month,&year); 
+                
+        sprintf(lcd_bufferl,"Time=%02u:%02u:%02u",hour,minute,second);
+        sprintf(lcd_buffer2,"13%02u/%02u/%02u",year,month,day);
+        
+        lcd_clear();
+        day_week();
+        lcd_gotoxy(0,0);
+        lcd_puts(lcd_bufferl);
+        lcd_gotoxy(0,1);
+        lcd_puts(lcd_buffer2);
+        delay_ms(250);
+
+      }
+}
